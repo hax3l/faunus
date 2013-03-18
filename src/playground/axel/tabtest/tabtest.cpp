@@ -1,11 +1,16 @@
 #include <faunus/faunus.h>
-#include <tclap/CmdLine.h>
+#include <faunus/tabulate.h>
+
+//#define tab
+//#define tabopt
+#define org
 
 using namespace Faunus;
 using namespace std;
 
-typedef Geometry::Cylinder Tgeometry;
-typedef Potential::CoulombLJTS Tpairpot;
+
+typedef Geometry::Cuboid Tgeometry;
+typedef Potential::DebyeHuckelLJ Tpairpot;
 
 int main(int argc, char** argv) {
   cout << textio::splash();
@@ -18,40 +23,27 @@ int main(int argc, char** argv) {
   UnitTest test(mcp);
 
   Energy::Hamiltonian pot;
-  auto nonbonded = pot.create( Energy::Nonbonded<Tpairpot,Tgeometry>(mcp) );
-  //auto constrain = pot.create( Energy::MassCenterConstrain(pot.getGeometry()) );
+#ifdef tab
+  Energy::Nonbonded<Potential::PotentialMapTabulated<Tpairpot>,Tgeometry> nb(mcp); // Tabulation
+#endif
+#ifdef tabopt
+Energy::Nonbonded<Potential::PotentialMapTabulatedopt<Tpairpot>,Tgeometry> nb(mcp); // 
+#endif
+#ifdef org
+  Energy::Nonbonded<Potential::PotentialMap<Tpairpot>,Tgeometry> nb(mcp); //  Non-tabulation
+#endif
+  nb.pairpot.add(atom["Ca"].id,atom["Ca"].id,Tpairpot(mcp));
+  nb.pairpot.add(atom["Ca"].id,atom["Cl"].id,Tpairpot(mcp));
+  nb.pairpot.add(atom["Ca"].id,atom["Na"].id,Tpairpot(mcp));
+  nb.pairpot.add(atom["Na"].id,atom["Na"].id,Tpairpot(mcp));
+  nb.pairpot.add(atom["Na"].id,atom["Cl"].id,Tpairpot(mcp));
+  nb.pairpot.add(atom["Cl"].id,atom["Cl"].id,Tpairpot(mcp));
+  
+  //nb.pairpot.print_tabulation(); // Print files to compare tabulation with real potential
+  
+  auto nonbonded = pot.create(nb);
+  
   Space spc( pot.getGeometry() );
-
-  // Add molecular species
-  int cnt=0;
-  int N1=mcp.get("polymer1_N",0);
-  int N2=mcp.get("polymer2_N",0);
-  double ppos[3];
-  ppos[1] = mcp.get<double>("polymer1_pos",0);
-  ppos[2] = mcp.get<double>("polymer2_pos",0);
-  vector<GroupMolecular> pol( N1+N2);
-  for (auto &g : pol) {
-    cnt++;
-    string polyfilekey = (cnt>N1) ? "polymer2_file" : "polymer1_file";
-    aam.load( mcp.get<string>(polyfilekey, "") );
-    Geometry::FindSpace f;
-    //f.dir.x()=0; // put mass center
-    //f.dir.y()=0; //   at [x,y,z] = [0,0,random]
-    //f.dir.z()=1;
-    //if (f.find(*spc.geo, spc.p, aam.p )) {
-      Point v;
-      v.x()=0.0;
-      v.y()=0.0;
-      v.z()=ppos[cnt];
-      translate(*spc.geo, aam.p, -massCenter(*spc.geo, aam.p)-v);
-      g = spc.insert( aam.p );
-      g.name=mcp.get<string>(polyfilekey, "");
-      spc.enroll(g);
-    //} else
-    //  return 1;
-  }
-
-  //constrain->addPair(pol[0], pol[1], 20, 150);
 
   // Add salt
   GroupAtomic salt(spc, mcp);
@@ -60,20 +52,17 @@ int main(int argc, char** argv) {
 
   spc.load("state");
 
-  Move::TranslateRotateCluster gmv(mcp,pot,spc);
   Move::AtomicTranslation mv(mcp, pot, spc);
-  gmv.setMobile(salt); // specify where to look for clustered ions
   mv.setGroup(salt);   // specify atomic particles to be moved
 
-  gmv.directions[ pol[0].name ].x()=0; // do not move in x
-  gmv.directions[ pol[0].name ].y()=0; // do not move in y
-  gmv.directions[ pol[0].name ].z()=0; // do move in z
-  gmv.directions[ pol[1].name ].x()=0; // do not move in x
-  gmv.directions[ pol[1].name ].y()=0; // do not move in y
-  gmv.directions[ pol[1].name ].z()=0; // do move in z
+  short na = atom["Na"].id;
+  short ca = atom["Ca"].id;
+  short cl = atom["Cl"].id;
+  
+  Analysis::RadialDistribution<float,unsigned int> rdf1(0.2); // 0.2 Å resolution
+  Analysis::RadialDistribution<float,unsigned int> rdf2(0.2); // 0.2 Å resolution
 
-  Analysis::LineDistribution<float,unsigned long int> rdf(0.5);
-  Analysis::LineDistributionNorm<float,unsigned long int> saltdistr(salt.size(), 0.2);
+  
   
   sys.init( Energy::systemEnergy(spc,pot,spc.p) );
 
@@ -82,43 +71,38 @@ int main(int argc, char** argv) {
   while ( loop.macroCnt() ) {  // Markov chain 
     while ( loop.microCnt() ) {
       xtc.save("out.xtc", spc.p);
-      int k,i=rand() % 2;
+      int i=rand() % 1;
       switch (i) {
         case 0:
           mv.setGroup(salt);
           sys+=mv.move( salt.size()/2+1 );
           break;
-        case 1:
-          k=pol.size();
-          while (k-->0) {
-            gmv.setGroup( pol[ rand() % pol.size() ] );
-            sys+=gmv.move();
-          }
-          for (auto i=pol.begin(); i!=pol.end()-1; i++)
-            for (auto j=i+1; j!=pol.end(); j++) {
-              double r=spc.geo->dist(i->cm,j->cm);
-              if (r<rdf.maxdist)
-                rdf(r)++;
-            }
-          break;
       }
-      for (auto j=salt.begin(); j!=salt.end()-1; j++) {
-        saltdistr(spc.p[(*j)].z())++;
+      if (slp_global() > 0.9) {
+        rdf1.sample( spc, salt, na, cl );
+        rdf2.sample( spc, salt, ca, cl );
       }
     } // end of micro loop
 
     sys.checkDrift( Energy::systemEnergy(spc,pot,spc.p) );
-
-    rdf.save("rdf_p2p.dat");
-    
-    saltdistr.save("saltdistr.dat");
     spc.save("state");
     cout << loop.timing();
   } // end of macro loop
+  
+#ifdef tab
+  rdf1.save("naclrdf_tab.dat");
+  rdf2.save("caclrdf_tab.dat");
+#endif
+#ifdef tabopt
+  rdf1.save("naclrdf_tabopt.dat");
+  rdf2.save("caclrdf_tabopt.dat");
+#endif
+#ifdef org
+  rdf1.save("naclrdf_notab.dat");
+  rdf2.save("caclrdf_notab.dat");
+#endif
 
   pqr.save("confout.pqr", spc.p);
 
-  cout << loop.info() << spc.info() << sys.info() << mv.info() << gmv.info();
-  cout << pol[0].info();
-  cout << pol[0].charge(spc.p) << endl;
+  cout << loop.info() << spc.info() << sys.info() << mv.info();
 }

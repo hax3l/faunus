@@ -287,6 +287,7 @@
 		8BA8482016E4F579006EE6F6 /* ewald.h in Headers */ = {isa = PBXBuildFile; fileRef = 8BA8481F16E4F579006EE6F6 /* ewald.h */; };
 		8BA8482216E4F589006EE6F6 /* spherocylinder.h in Headers */ = {isa = PBXBuildFile; fileRef = 8BA8482116E4F589006EE6F6 /* spherocylinder.h */; };
 		8BE1FA9F165A9780001073CC /* auxiliary.h in Headers */ = {isa = PBXBuildFile; fileRef = 8BE1FA9E165A9780001073CC /* auxiliary.h */; };
+		B872C36316F38F8A006A4793 /* tabulate.h in Headers */ = {isa = PBXBuildFile; fileRef = B872C36216F38F8A006A4793 /* tabulate.h */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -633,6 +634,9 @@
 		8BA8482116E4F589006EE6F6 /* spherocylinder.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = spherocylinder.h; sourceTree = "<group>"; };
 		8BABBCC1166C9EA300C223CC /* membrane.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = membrane.cpp; path = ../../src/playground/mlund/membrane.cpp; sourceTree = "<group>"; };
 		8BE1FA9E165A9780001073CC /* auxiliary.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; fileEncoding = 4; path = auxiliary.h; sourceTree = "<group>"; };
+		B872C36216F38F8A006A4793 /* tabulate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = tabulate.h; sourceTree = "<group>"; };
+		B872C36616F391A4006A4793 /* tabtest.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = tabtest.cpp; sourceTree = "<group>"; };
+		B872C36716F391A4006A4793 /* tabtest.run */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = tabtest.run; sourceTree = "<group>"; };
 		B8FAFBED1687DFF3001E9A89 /* temper.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = temper.cpp; sourceTree = "<group>"; };
 		B8FAFBEE1687DFF3001E9A89 /* temper.run */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = temper.run; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -1288,6 +1292,7 @@
 				738C134713FB12DE0056EF71 /* space.h */,
 				738C134813FB12DE0056EF71 /* species.h */,
 				8BA8482116E4F589006EE6F6 /* spherocylinder.h */,
+				B872C36216F38F8A006A4793 /* tabulate.h */,
 				7316FA2C15C546A30024F084 /* textio.h */,
 				8B9D16DC166CA22A00E7C7D4 /* titrate.h */,
 				73011C5E1423E30100509B7B /* topology.h */,
@@ -1360,6 +1365,7 @@
 		8B92774C1684A3F9003BD642 /* playground-axel */ = {
 			isa = PBXGroup;
 			children = (
+				B872C36516F391A4006A4793 /* tabtest */,
 				B8FAFBEC1687DFF3001E9A89 /* tempertest */,
 				8B9277481684A3E7003BD642 /* clustertest */,
 			);
@@ -1374,6 +1380,16 @@
 				8BABBCC1166C9EA300C223CC /* membrane.cpp */,
 			);
 			name = "playground-mlund";
+			sourceTree = "<group>";
+		};
+		B872C36516F391A4006A4793 /* tabtest */ = {
+			isa = PBXGroup;
+			children = (
+				B872C36616F391A4006A4793 /* tabtest.cpp */,
+				B872C36716F391A4006A4793 /* tabtest.run */,
+			);
+			name = tabtest;
+			path = ../tabtest;
 			sourceTree = "<group>";
 		};
 		B8FAFBEC1687DFF3001E9A89 /* tempertest */ = {
@@ -1648,6 +1664,7 @@
 				73CB4DA616D9297500DED45D /* externalpotential.h in Headers */,
 				8BA8482016E4F579006EE6F6 /* ewald.h in Headers */,
 				8BA8482216E4F589006EE6F6 /* spherocylinder.h in Headers */,
+				B872C36316F38F8A006A4793 /* tabulate.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

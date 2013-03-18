@@ -63,6 +63,9 @@ set_target_properties(axel-clustertest PROPERTIES OUTPUT_NAME "clustertest")
 fau_example(axel-tempertest "./axel/tempertest" temper.cpp)
 set_target_properties(axel-tempertest PROPERTIES OUTPUT_NAME "tempertest")
 
+fau_example(axel-tabtest "./axel/tabtest" tabtest.cpp)
+set_target_properties(axel-tabtest PROPERTIES OUTPUT_NAME "tabtest")
+
 if (EXISTS ${MYPLAYGROUND})
   add_subdirectory(${MYPLAYGROUND} ${MYPLAYGROUND})
 endif()

@@ -10,6 +10,7 @@
 #include <faunus/inputfile.h>
 #include <faunus/species.h>
 #include <faunus/geometry.h>
+#include <faunus/tabulate.h>
 #endif
 
 namespace Faunus {
@@ -557,7 +558,7 @@ namespace Faunus {
           if (r2>Rc2)
             return 0;
 #ifdef FAU_APPROXMATH
-          r2=invsqrtQuake(r2);  // 1/r
+          r2=invsqrrtQuake(r2);  // 1/r
           return lB * a.charge * b.charge * (r2 - Rcinv + (Rcinv/r2-1)*Rcinv );
 #else
           r2=sqrt(r2); // r
@@ -670,7 +671,7 @@ namespace Faunus {
     template<typename Tdefault, typename Tpair=opair<particle::Tid>,
       typename Tmap=std::map<Tpair, std::shared_ptr<PairPotentialBase> > >
         class PotentialMap : public Tdefault {
-          private:
+          protected:
             Tmap m;
           public:
             PotentialMap(InputMap &in) : Tdefault(in) {
@@ -678,7 +679,7 @@ namespace Faunus {
             } 
 
             template<class Tpairpot>
-              void add(AtomData::Tid id1, AtomData::Tid id2, Tpairpot pot) {
+              void add(int id1, int id2, Tpairpot pot) {
                 pot.name=atom[id1].name + "<->" + atom[id2].name + ": " + pot.name;
                 m[Tpair(id1,id2)] = std::shared_ptr<Tpairpot>(new Tpairpot(pot));
               }
@@ -686,8 +687,9 @@ namespace Faunus {
             template<class Tparticle, class Tdist>
               double operator()(const Tparticle &a, const Tparticle &b, Tdist r2) const {
                 auto i=m.find( Tpair(a.id,b.id) );
-                if (i!=m.end())
+                if (i!=m.end()) {
                   return i->second->operator()(a,b,r2);
+                }
                 return Tdefault::operator()(a,b,r2);
               }
 
@@ -698,6 +700,224 @@ namespace Faunus {
               return o.str();
             }
         };
+    
+      /**
+       * @brief Custom tabulated potentials between specific particle types
+       *
+       * If the pair is not recognized, i.e. not added with the
+       * `add()` function, the `Tdefault` pair potential is used.
+       * If the pair is found then a tabulation is used.
+       */
+      template<typename Tdefault, typename Ttabulator=Tabulate::tabulator<double>, typename Tpair=opair<int> >
+        class PotentialMapTabulated : public PotentialMap<Tdefault,Tpair> {
+        private:
+          typedef PotentialMap<Tdefault,Tpair> base;
+          Ttabulator tab;
+          std::map<Tpair, typename Ttabulator::data> mtab;
+        public:
+          PotentialMapTabulated(InputMap &in) : base(in) {
+            
+            tab.setRange(in.get<double>("tab_rmin", 1.0),
+                         in.get<double>("tab_rmax", 100.0));
+            
+            tab.setTolerance(in.get<double>("tab_utol", 0.01), 
+                             in.get<double>("tab_ftol", -1), 
+                             in.get<double>("tab_umaxtol", -1), 
+                             in.get<double>("tab_fmaxtol", -1));
+            
+          }
+          template<class Tparticle>
+          double operator()(const Tparticle &a, const Tparticle &b, double r2) {
+            auto ab = Tpair(a.id,b.id);
+            auto it=mtab.find(ab);
+            if (it!=mtab.end()) {
+              if (r2<it->second.rmax2)
+                if (r2>it->second.rmin2) { 
+                  return tab.eval(it->second, r2);
+                }
+              return base::m[ab]->operator()(a,b,r2); // fall back to original
+            }
+            return Tdefault::operator()(a,b,r2); // fall back to default
+          }
+          template<class Tpairpot>
+          void add(int id1, int id2, Tpairpot pot) {
+            particle a;
+            a = atom[id1];
+            particle b;
+            b = atom[id2];
+            base::add(a.id,b.id,pot);
+            std::function<double(particle&, particle&, double)> func = pot;
+            mtab[ Tpair(id1,id2) ] = tab.generate(a,b,func);
+          }
+          std::string info(char w=20) {
+            std::ostringstream o( base::info(w) );
+            o << tab.info(w) << std::endl;
+            
+            using namespace Faunus::textio;
+            for (auto &i : mtab) {
+              auto ab = Tpair(i.first.first,i.first.second);
+              auto it=mtab.find(ab);
+              o << pad(SUB,w,"Nbr of elements in table ("+atom[i.first.first].name+"<->"+atom[i.first.second].name+"): ") << it->second.r2.size() << std::endl;
+            
+              //tab.print(it->second);
+            }
+            return o.str();
+          }
+          void print_tabulation(int n=1000) {
+            for (auto &i : mtab) {
+              auto ab = Tpair(i.first.first,i.first.second);
+              auto it=mtab.find(ab);
+              
+              particle a;
+              a = atom[i.first.first];
+              particle b;
+              b = atom[i.first.second];
+              
+              std::ofstream ff1(std::string(atom[i.first.first].name+"."+atom[i.first.second].name+".real.dat").c_str());
+              ff1.precision(10);
+              
+              std::ofstream ff2(std::string(atom[i.first.first].name+"."+atom[i.first.second].name+".tab.dat").c_str());
+              ff2.precision(10);
+              
+              double max = it->second.rmax2;
+              double min = it->second.rmin2;
+              double dr = (max-min)/(double)n;
+              for (int j = 1; j < n; j++) {
+                double r2 = min+dr*((double)j);
+                ff1 << sqrt(r2) << " " << base::m[ab]->operator()(a,b,r2) << std::endl;
+                ff2 << sqrt(r2) << " " << tab.eval(it->second, r2) << std::endl;
+              }
+              
+              ff1.close();
+              ff2.close();
+            }
+          }
+        };
+    
+    
+    
+    
+    /**
+     * @brief Custom tabulated potentials between specific particle types
+     *
+     * If the pair is not recognized, i.e. not added with the
+     * `add()` function, the `Tdefault` pair potential is used.
+     * If the pair is found then a tabulation is used.
+     */
+    template<typename Tdefault, typename Tpair=opair<int> >
+    class PotentialMapTabulatedopt : public PotentialMap<Tdefault,Tpair> {
+    private:
+      typedef PotentialMap<Tdefault,Tpair> base;
+      typedef Tabulate::tabulator<double> Ttabulator;
+      Ttabulator tab;
+      std::map<Tpair, typename Ttabulator::data> mtab;
+    public:
+
+      PotentialMapTabulatedopt(InputMap &in) : base(in) {
+        
+        tab.setRange(in.get<double>("tab_rmin", 1.0),
+                     in.get<double>("tab_rmax", 100.0));
+        
+        tab.setTolerance(in.get<double>("tab_utol", 0.01), 
+                         in.get<double>("tab_ftol", -1), 
+                         in.get<double>("tab_umaxtol", -1), 
+                         in.get<double>("tab_fmaxtol", -1));
+        
+      }
+      template<class Tparticle>
+      double operator()(const Tparticle &a, const Tparticle &b, double r2) {
+        auto ab = Tpair(a.id,b.id);
+        auto it=mtab.find(ab);//.begin();//
+        if (it!=mtab.end()) {
+          //return base::m[ab]->operator()(a,b,r2);
+          return tab.eval(it->second, r2);
+        }
+        return Tdefault::operator()(a,b,r2); // fall back to default
+      }
+      template<class Tpairpot>
+      void add(int id1, int id2, Tpairpot pot) {
+        particle a;
+        a = atom[id1];
+        particle b;
+        b = atom[id2];
+        base::add(a.id,b.id,pot);
+        std::function<double(particle&, particle&, double)> func = pot;
+        Ttabulator::data tg = tab.generate(a,b,func);
+        std::vector<double>::iterator it;
+        
+        tg.rmax2 = 10000000.0;
+        tg.r2.push_back(10000000.0);
+        tg.c.push_back(0.0);
+        tg.c.push_back(0.0);
+        tg.c.push_back(0.0);
+        tg.c.push_back(0.0);
+        tg.c.push_back(0.0);
+        tg.c.push_back(0.0);
+        
+        
+        
+        it = tg.r2.begin();
+        tg.r2.insert(it, 0.0);
+        
+        it = tg.c.begin();
+        tg.c.insert ( it , 0.0 );
+        it = tg.c.begin();
+        tg.c.insert ( it , 0.0 );
+        it = tg.c.begin();
+        tg.c.insert ( it , 0.0 );
+        it = tg.c.begin();
+        tg.c.insert ( it , 0.0 );
+        it = tg.c.begin();
+        tg.c.insert ( it , 0.0 );
+        it = tg.c.begin();
+        tg.c.insert ( it , 100000.0 );
+        
+        mtab[ Tpair(id1,id2) ] = tg;
+      }
+      std::string info(char w=20) {
+        std::ostringstream o( base::info(w) );
+        o << tab.info(w) << std::endl;
+        
+        using namespace Faunus::textio;
+        for (auto &i : mtab) {
+          auto ab = Tpair(i.first.first,i.first.second);
+          auto it=mtab.find(ab);
+          o << pad(SUB,w,"Nbr of elements in table ("+atom[i.first.first].name+"<->"+atom[i.first.second].name+"): ") << it->second.r2.size() << std::endl;
+
+          //tab.print(it->second);
+        }
+        return o.str();
+      }
+      void print_tabulation(int n=1000) {
+        for (auto &i : mtab) {
+          auto ab = Tpair(i.first.first,i.first.second);
+          auto it=mtab.find(ab);
+          
+          particle a;
+          a = atom[i.first.first];
+          particle b;
+          b = atom[i.first.second];
+          
+          std::ofstream ff1(std::string(atom[i.first.first].name+"."+atom[i.first.second].name+".real.dat").c_str());
+          ff1.precision(10);
+          
+          std::ofstream ff2(std::string(atom[i.first.first].name+"."+atom[i.first.second].name+".tab.dat").c_str());
+          ff2.precision(10);
+          
+          double max = it->second.rmax2;
+          double min = it->second.rmin2;
+          double dr = (max-min)/(double)n;
+          for (int j = 1; j < n; j++) {
+            double r2 = min+dr*((double)j);
+            ff1 << sqrt(r2) << " " << base::m[ab]->operator()(a,b,r2) << std::endl;
+            ff2 << sqrt(r2) << " " << tab.eval(it->second, r2) << std::endl;
+          }
+          
+          ff1.close();
+          ff2.close();
+        }
+      }
+    };
 
     /**
      * @brief Combines two pair potentials
