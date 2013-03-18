@@ -1,5 +1,9 @@
 #include <faunus/faunus.h>
 
+//#define tab
+#define tabopt
+//#define org
+
 using namespace Faunus;
 
 /**
@@ -55,7 +59,16 @@ void MakeDesernoMembrane(const Tlipid &lipid, Tbonded &bond, Tnonbonded &nb, Tin
 }
 
 typedef Geometry::Cuboid Tgeometry;   // specify geometry - here cube w. periodic boundaries
+#ifdef tab
+typedef Potential::PotentialMapTabulated<Potential::DebyeHuckelLJ> Tpairpot;
+#endif
+#ifdef tabopt
+typedef Potential::PotentialMapTabulatedopt<Potential::DebyeHuckelLJ> Tpairpot;
+#endif
+#ifdef org
 typedef Potential::PotentialMap<Potential::DebyeHuckelLJ> Tpairpot;
+#endif
+
 
 int main() {
 

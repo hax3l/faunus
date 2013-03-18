@@ -127,6 +127,7 @@ namespace Faunus {
         if (u0low == 0.0 && u1low == 0.0) {
           for (int i = 0; i < 6; i++)
             ubuft.push_back(0.0);
+          return ubuft;
         }
         
         T dz1 = zupp-zlow;
@@ -226,10 +227,18 @@ namespace Faunus {
           std::cout << "fsum=" << fsum << " abs(fsum-u1) " << std::abs(fsum-u1) << " u1 " << u1 << " base::ftol " << base::ftol << std::endl;
     #endif
           
-          if (std::abs(usum-u0) > base::utol)
+          if (std::abs(usum-u0) > base::utol) {
+      #ifdef D_CheckUBuffer
+            std::cout << "Failed by u" << std::endl;
+      #endif
             return vb;
-          if (base::ftol != -1 && std::abs(fsum-u1) > base::ftol)
+          }
+          if (base::ftol != -1 && std::abs(fsum-u1) > base::ftol) {
+      #ifdef D_CheckUBuffer
+            std::cout << "Failed by f" << std::endl;
+      #endif
             return vb;    
+          }
           if (base::umaxtol != -1 && std::abs(usum) > base::umaxtol)
             vb.at(1) = true;
           if (base::fmaxtol != -1 && std::abs(usum) > base::fmaxtol)

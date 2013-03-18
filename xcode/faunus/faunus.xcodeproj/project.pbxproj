@@ -637,6 +637,8 @@
 		B872C36216F38F8A006A4793 /* tabulate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = tabulate.h; sourceTree = "<group>"; };
 		B872C36616F391A4006A4793 /* tabtest.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = tabtest.cpp; sourceTree = "<group>"; };
 		B872C36716F391A4006A4793 /* tabtest.run */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = tabtest.run; sourceTree = "<group>"; };
+		B87DD71516F721BE00E4C566 /* membrane.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = membrane.cpp; path = ../../src/examples/membrane.cpp; sourceTree = "<group>"; };
+		B87DD71616F721BE00E4C566 /* membrane.run */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; name = membrane.run; path = ../../src/examples/membrane.run; sourceTree = "<group>"; };
 		B8FAFBED1687DFF3001E9A89 /* temper.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = temper.cpp; sourceTree = "<group>"; };
 		B8FAFBEE1687DFF3001E9A89 /* temper.run */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = temper.run; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -1324,6 +1326,7 @@
 		738C138C13FB13740056EF71 /* src */ = {
 			isa = PBXGroup;
 			children = (
+				B87DD71316F7219500E4C566 /* examples */,
 				738C136713FB133A0056EF71 /* xdrfile */,
 				7316FA5515C56BA10024F084 /* analysis.cpp */,
 				73B67CD21423E28E00E44DD9 /* drift.cpp */,
@@ -1390,6 +1393,15 @@
 			);
 			name = tabtest;
 			path = ../tabtest;
+			sourceTree = "<group>";
+		};
+		B87DD71316F7219500E4C566 /* examples */ = {
+			isa = PBXGroup;
+			children = (
+				B87DD71516F721BE00E4C566 /* membrane.cpp */,
+				B87DD71616F721BE00E4C566 /* membrane.run */,
+			);
+			name = examples;
 			sourceTree = "<group>";
 		};
 		B8FAFBEC1687DFF3001E9A89 /* tempertest */ = {

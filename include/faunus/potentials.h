@@ -711,6 +711,7 @@ namespace Faunus {
       template<typename Tdefault, typename Ttabulator=Tabulate::tabulator<double>, typename Tpair=opair<int> >
         class PotentialMapTabulated : public PotentialMap<Tdefault,Tpair> {
         private:
+          int print;
           typedef PotentialMap<Tdefault,Tpair> base;
           Ttabulator tab;
           std::map<Tpair, typename Ttabulator::data> mtab;
@@ -724,6 +725,8 @@ namespace Faunus {
                              in.get<double>("tab_ftol", -1), 
                              in.get<double>("tab_umaxtol", -1), 
                              in.get<double>("tab_fmaxtol", -1));
+            
+            print = in.get<int>("tab_print",0);
             
           }
           template<class Tparticle>
@@ -758,9 +761,11 @@ namespace Faunus {
               auto ab = Tpair(i.first.first,i.first.second);
               auto it=mtab.find(ab);
               o << pad(SUB,w,"Nbr of elements in table ("+atom[i.first.first].name+"<->"+atom[i.first.second].name+"): ") << it->second.r2.size() << std::endl;
-            
-              //tab.print(it->second);
             }
+            o << std::endl;
+            if (print == 1)
+              print_tabulation();
+            
             return o.str();
           }
           void print_tabulation(int n=1000) {
@@ -811,6 +816,7 @@ namespace Faunus {
       typedef Tabulate::tabulator<double> Ttabulator;
       Ttabulator tab;
       std::map<Tpair, typename Ttabulator::data> mtab;
+      typename Ttabulator::data vtab[100];
     public:
 
       PotentialMapTabulatedopt(InputMap &in) : base(in) {
@@ -826,8 +832,9 @@ namespace Faunus {
       }
       template<class Tparticle>
       double operator()(const Tparticle &a, const Tparticle &b, double r2) {
+        return tab.eval(vtab[a.id*10+b.id], r2);
         auto ab = Tpair(a.id,b.id);
-        auto it=mtab.find(ab);//.begin();//
+        auto it=mtab.find(ab);
         if (it!=mtab.end()) {
           //return base::m[ab]->operator()(a,b,r2);
           return tab.eval(it->second, r2);
@@ -873,6 +880,8 @@ namespace Faunus {
         tg.c.insert ( it , 100000.0 );
         
         mtab[ Tpair(id1,id2) ] = tg;
+        vtab[id1*10+id2] = tg;
+        vtab[id2*10+id1] = tg;
       }
       std::string info(char w=20) {
         std::ostringstream o( base::info(w) );
@@ -883,9 +892,9 @@ namespace Faunus {
           auto ab = Tpair(i.first.first,i.first.second);
           auto it=mtab.find(ab);
           o << pad(SUB,w,"Nbr of elements in table ("+atom[i.first.first].name+"<->"+atom[i.first.second].name+"): ") << it->second.r2.size() << std::endl;
-
-          //tab.print(it->second);
         }
+        
+        o << std::endl;
         return o.str();
       }
       void print_tabulation(int n=1000) {
