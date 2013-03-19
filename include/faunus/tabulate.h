@@ -27,21 +27,20 @@ namespace Faunus {
       T numdr = 0.0001; // dr for derivative evaluation
       
       // First derivative with respect to r2 numerically
-      template<class Tparticle>
-      T f1(Tparticle a, Tparticle b, std::function<T(Tparticle&,Tparticle&,T)> f, T r2) {
-        return (f(a,b,r2+numdr*0.5)-f(a,b,r2-numdr*0.5))/(numdr);
+      T f1(std::function<T(T)> &f, T r2) {//Tparticle a, Tparticle b, std::function<T(Tparticle&,Tparticle&,T)> f, T r2) {
+        return (f(r2+numdr*0.5)-f(r2-numdr*0.5))/(numdr);
       }
       
       // Second derivative with respect to r2 numerically
-      template<class Tparticle>
-      T f2(Tparticle a, Tparticle b, std::function<T(Tparticle&,Tparticle&,T)> f, T r2) {
-        return (f1(a,b,f,r2+numdr*0.5)-f1(a,b,f,r2-numdr*0.5))/(numdr);
+      T f2(std::function<T(T)> &f, T r2) {//Tparticle a, Tparticle b, std::function<T(Tparticle&,Tparticle&,T)> f, T r2) {
+        return (f1(f,r2+numdr*0.5)-f1(f,r2-numdr*0.5))/(numdr);
       }
       
     public:
       struct data {
-        T rmin2, rmax2; // useful to save these with table
-        std::vector<T> r2, c; // r2 for intervals, c for coefficents
+        std::vector<T> r2;  // r2 for intervals
+        std::vector<T> c;   // c for coefficents
+        T rmin2, rmax2;     // useful to save these with table
       };
       void setTolerance(T _utol, T _ftol=-1, T _umaxtol=-1, T _fmaxtol=-1) {
         utol = _utol;
@@ -95,7 +94,7 @@ namespace Faunus {
       T eval(const typename base::data& d, T r2) const {
         const typename std::vector<T>::const_iterator low = std::lower_bound(d.r2.begin(), d.r2.end(), r2);
         int pos = (low-d.r2.begin()-1);
-        T min = d.r2.at(pos);
+        T min = d.r2[pos];
         T dz = r2-min;
         int pos6 = 6.0*pos;
         T usum =  d.c[pos6+0]+
@@ -181,13 +180,12 @@ namespace Faunus {
         return ubuft;
       }
       
-      template<class Tparticle>
       std::vector<bool> CheckUBuffer(std::vector<T>& ubuft, 
                                      T rlow,
                                      T rupp,
-                                     Tparticle a, 
+                                     std::function<T(T)> &f) {/*Tparticle a, 
                                      Tparticle b,
-                                     std::function<T(Tparticle&,Tparticle&,T)> f) {
+                                     std::function<T(Tparticle&,Tparticle&,T)> f) {*/
         
         // vb[0]: Tolerance is approved
         // vb[1]: A repulsive part is found
@@ -202,8 +200,8 @@ namespace Faunus {
         for (int i = 0; i < ncheck; i++) {
           T r1 = rlow+dr*((T)i);
           T r2 = r1*r1;
-          T u0 = f(a,b,r2);
-          T u1 = base::f1(a,b,f,r2);
+          T u0 = f(r2);
+          T u1 = base::f1(f,r2);
           T dz = r2-rlow*rlow;
           T usum =  ubuft.at(1)+
                     dz*(ubuft.at(2)+
@@ -257,9 +255,8 @@ namespace Faunus {
       }
       
       
-      template<class Tparticle>
       typename base::data
-      generate(Tparticle a, Tparticle b, std::function<T(Tparticle&,Tparticle&,T)> f) {
+      generate(std::function<T(T)> &f) {//(Tparticle a, Tparticle b, std::function<T(Tparticle&,Tparticle&,T)> f) {
         
         assert(base::rmin >= 0.0);
         assert(base::rmax >= 0.0);
@@ -296,7 +293,7 @@ namespace Faunus {
         
         int i;
         for (i=0; i < mngrid; i++) {
-          T rlow;
+          T rlow = rupp;
           T zlow;
           std::vector<T> ubuft;
           int j;
@@ -317,16 +314,16 @@ namespace Faunus {
             
             zlow = rlow*rlow;
             
-            T u0low = f(a,b,zlow);
-            T u1low = base::f1(a,b,f,zlow);
-            T u2low = base::f2(a,b,f,zlow);
+            T u0low = f(zlow);
+            T u1low = base::f1(f,zlow);
+            T u2low = base::f2(f,zlow);
             
-            T u0upp = f(a,b,zupp);
-            T u1upp = base::f1(a,b,f,zupp);
-            T u2upp = base::f2(a,b,f,zupp);
+            T u0upp = f(zupp);
+            T u1upp = base::f1(f,zupp);
+            T u2upp = base::f2(f,zupp);
             
             ubuft = SetUBuffer(rlow,zlow,rupp,zupp,u0low,u1low,u2low,u0upp,u1upp,u2upp);
-            std::vector<bool> vb = CheckUBuffer(ubuft,rlow,rupp,a,b,f);
+            std::vector<bool> vb = CheckUBuffer(ubuft,rlow,rupp,f);
             repul = vb.at(1);
             if (vb.at(0) == true) {
     #ifdef D_MR2
@@ -388,25 +385,83 @@ namespace Faunus {
         
       }
       
-      void print(typename base::data &d) {
-        std::cout << "Size of r2: " << d.r2.size() << std::endl;
-        std::cout << "rmax2 r2=" << d.rmax2 << " r=" << std::sqrt(d.rmax2) << std::endl;
-        std::cout << "rmin2 r2=" << d.rmin2 << " r=" << std::sqrt(d.rmin2) << std::endl;
-        std::cout << "utol: " << base::utol << std::endl;
-        std::cout << "ftol: " << base::ftol << std::endl;
-        std::cout << "umaxtol: " << base::umaxtol << std::endl;
-        std::cout << "fmaxtol: " << base::fmaxtol << std::endl;
-        std::cout << std::endl;
+      
+      
+      typename base::data
+      generate_full(std::function<T(T)> &f) {
+        
+        typename base::data tg = generate(f);
+        
+        // Assume zero at from max to infinity
+        tg.rmax2 = 100000000.0;
+        tg.r2.push_back(pc::infty);
+        tg.c.push_back(0.0);
+        tg.c.push_back(0.0);
+        tg.c.push_back(0.0);
+        tg.c.push_back(0.0);
+        tg.c.push_back(0.0);
+        tg.c.push_back(0.0);
+        
+        // Assume infinity from min to zero
+        typename std::vector<T>::iterator it = tg.r2.begin();
+        tg.rmin2 = -0.1;
+        tg.r2.insert(it, 0.0);
+        
+        it = tg.c.begin();
+        tg.c.insert ( it , 0.0 );
+        it = tg.c.begin();
+        tg.c.insert ( it , 0.0 );
+        it = tg.c.begin();
+        tg.c.insert ( it , 0.0 );
+        it = tg.c.begin();
+        tg.c.insert ( it , 0.0 );
+        it = tg.c.begin();
+        tg.c.insert ( it , 0.0 );
+        it = tg.c.begin();
+        tg.c.insert ( it , 100000.0 );
+        
+        return tg;
+        
+      }
+      
+      
+      
+      typename base::data
+      generate_empty() {
+        
+        typename base::data tg;
+        
+        // Assume zero at from zero to infinity
+        tg.rmin2 = -0.1;
+        tg.rmax2 = 100000000.0;
+        tg.r2.push_back(0.0);
+        tg.c.push_back(0.0);
+        tg.c.push_back(0.0);
+        tg.c.push_back(0.0);
+        tg.c.push_back(0.0);
+        tg.c.push_back(0.0);
+        tg.c.push_back(0.0);
+        
+        return tg;
+        
+      }
+
+      
+      std::string print(typename base::data &d) {
+        std::ostringstream o( "Size of r2: " + d.r2.size() );
+        o << "rmax2 r2=" << d.rmax2 << " r=" << std::sqrt(d.rmax2) << std::endl;
+        o << "rmin2 r2=" << d.rmin2 << " r=" << std::sqrt(d.rmin2) << std::endl;
         for (unsigned int i = 0; i < d.r2.size(); i++) {
-          std::cout << i << ": r2=" << d.r2.at(i) << " r=" << std::sqrt(d.r2.at(i)) << std::endl;
+          o << i << ": r2=" << d.r2.at(i) << " r=" << std::sqrt(d.r2.at(i)) << std::endl;
           if (i != (d.r2.size()-1)) {
-            std::cout << "coeffs:";
+            o << "coeffs:";
             for (unsigned int j = 0; j < 6; j++) {
-              std::cout << " "<< d.c.at(i*6+j) <<",";
+              o << " "<< d.c.at(i*6+j) <<",";
             }
           }
-          std::cout << std::endl;
+          o << std::endl;
         }
+        return o.str();
       }
       
     };

@@ -3,7 +3,12 @@
 
 //#define tab
 //#define tabopt
-#define org
+//#define org
+
+
+//#define tabsingle
+//#define taboptsingle
+#define orgsingle
 
 using namespace Faunus;
 using namespace std;
@@ -25,23 +30,48 @@ int main(int argc, char** argv) {
   Energy::Hamiltonian pot;
 #ifdef tab
   Energy::Nonbonded<Potential::PotentialMapTabulated<Tpairpot>,Tgeometry> nb(mcp); // Tabulation
-#endif
-#ifdef tabopt
-Energy::Nonbonded<Potential::PotentialMapTabulatedopt<Tpairpot>,Tgeometry> nb(mcp); // 
-#endif
-#ifdef org
-  Energy::Nonbonded<Potential::PotentialMap<Tpairpot>,Tgeometry> nb(mcp); //  Non-tabulation
-#endif
   nb.pairpot.add(atom["Ca"].id,atom["Ca"].id,Tpairpot(mcp));
   nb.pairpot.add(atom["Ca"].id,atom["Cl"].id,Tpairpot(mcp));
   nb.pairpot.add(atom["Ca"].id,atom["Na"].id,Tpairpot(mcp));
   nb.pairpot.add(atom["Na"].id,atom["Na"].id,Tpairpot(mcp));
   nb.pairpot.add(atom["Na"].id,atom["Cl"].id,Tpairpot(mcp));
   nb.pairpot.add(atom["Cl"].id,atom["Cl"].id,Tpairpot(mcp));
+  auto nonbonded = pot.create(nb);
+#endif
+#ifdef tabopt
+  Energy::Nonbonded<Potential::PotentialVecTabulated<Tpairpot>,Tgeometry> nb(mcp); // Tabulation optimized
+  nb.pairpot.add(atom["Ca"].id,atom["Ca"].id,Tpairpot(mcp));
+  nb.pairpot.add(atom["Ca"].id,atom["Cl"].id,Tpairpot(mcp));
+  nb.pairpot.add(atom["Ca"].id,atom["Na"].id,Tpairpot(mcp));
+  nb.pairpot.add(atom["Na"].id,atom["Na"].id,Tpairpot(mcp));
+  nb.pairpot.add(atom["Na"].id,atom["Cl"].id,Tpairpot(mcp));
+  nb.pairpot.add(atom["Cl"].id,atom["Cl"].id,Tpairpot(mcp));
+  auto nonbonded = pot.create(nb);
+#endif
+#ifdef org
+  Energy::Nonbonded<Potential::PotentialMap<Tpairpot>,Tgeometry> nb(mcp); //  Non-tabulation
+  nb.pairpot.add(atom["Ca"].id,atom["Ca"].id,Tpairpot(mcp));
+  nb.pairpot.add(atom["Ca"].id,atom["Cl"].id,Tpairpot(mcp));
+  nb.pairpot.add(atom["Ca"].id,atom["Na"].id,Tpairpot(mcp));
+  nb.pairpot.add(atom["Na"].id,atom["Na"].id,Tpairpot(mcp));
+  nb.pairpot.add(atom["Na"].id,atom["Cl"].id,Tpairpot(mcp));
+  nb.pairpot.add(atom["Cl"].id,atom["Cl"].id,Tpairpot(mcp));
+  auto nonbonded = pot.create(nb);
+#endif
+  
+
+#ifdef tabsingle
+  auto nonbonded = pot.create( Energy::Nonbonded<Potential::PotentialTabulate<Tpairpot>,Tgeometry>(mcp) );
+#endif 
+#ifdef taboptsingle
+  auto nonbonded = pot.create( Energy::Nonbonded<Potential::PotentialTabulateVec<Tpairpot>,Tgeometry>(mcp) );
+#endif 
+#ifdef orgsingle
+  auto nonbonded = pot.create( Energy::Nonbonded<Tpairpot,Tgeometry>(mcp) );
+#endif 
   
   //nb.pairpot.print_tabulation(); // Print files to compare tabulation with real potential
   
-  auto nonbonded = pot.create(nb);
   
   Space spc( pot.getGeometry() );
 

@@ -22,7 +22,7 @@ atomlist               cluster.atoms
 loop_macrosteps        2
 loop_microsteps        $micro
 
-cuboid_len            300
+cuboid_len            100
 
 temperature            300.5     # Kelvin
 epsilon_r              78.3    # Water dielectric const
@@ -60,9 +60,9 @@ rm -f state
 # Equil
 micro=1000
 mkinput
-time ./$exe > eq
+time ./$exe # > eq
 
 # Prod
-micro=6000
+micro=10000
 mkinput
 time ./$exe > prod

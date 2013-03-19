@@ -1,8 +1,8 @@
 #include <faunus/faunus.h>
 
 //#define tab
-#define tabopt
-//#define org
+//#define tabopt
+#define org
 
 using namespace Faunus;
 
@@ -39,6 +39,12 @@ void MakeDesernoMembrane(const Tlipid &lipid, Tbonded &bond, Tnonbonded &nb, Tin
   nb.pairpot.add(hid, hid, headhead); // Add to main pair potential
   nb.pairpot.add(tid, tid, tailtail);
   nb.pairpot.add(hid, tid, headtail);
+#ifdef tab
+  nb.pairpot.print_tabulation(); // Print files to compare tabulation with real potential
+#endif
+#ifdef tabopt
+  nb.pairpot.print_tabulation(); // Print files to compare tabulation with real potential
+#endif
 
   // bonded interactions
   double headtail_k=0.5*10*epsilon/(sigma*sigma);
@@ -63,7 +69,7 @@ typedef Geometry::Cuboid Tgeometry;   // specify geometry - here cube w. periodi
 typedef Potential::PotentialMapTabulated<Potential::DebyeHuckelLJ> Tpairpot;
 #endif
 #ifdef tabopt
-typedef Potential::PotentialMapTabulatedopt<Potential::DebyeHuckelLJ> Tpairpot;
+typedef Potential::PotentialVecTabulated<Potential::DebyeHuckelLJ> Tpairpot;
 #endif
 #ifdef org
 typedef Potential::PotentialMap<Potential::DebyeHuckelLJ> Tpairpot;
