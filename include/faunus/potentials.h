@@ -703,7 +703,11 @@ namespace Faunus {
             }
         };
     
-    
+    /**
+     * @brief Tabulated potential between all particle types
+     *
+     * If the pair is not recognized, the pair-potential will be tabulated
+     */
       template<typename Tpairpot, typename Ttabulator=Tabulate::tabulator<double> >
       class PotentialTabulate : public Tpairpot {
         private:
@@ -734,8 +738,12 @@ namespace Faunus {
           }
       };
     
-      
-      template<typename Tpairpot, typename Ttabulator=Tabulate::tabulator<double> >
+    /**
+     * @brief Similar to PotentialTabulate but faster
+     *
+     * All pair-potentials are tabulated in constructor
+     */
+    template<typename Tpairpot, typename Ttabulator=Tabulate::tabulator<double> >
       class PotentialTabulateVec : public Tpairpot {
       private:
         Ttabulator tab;
@@ -781,7 +789,7 @@ namespace Faunus {
        *
        * If the pair is not recognized, i.e. not added with the
        * `add()` function, the `Tdefault` pair potential is used.
-       * If the pair is found then a tabulation is used.
+       * If the pair is found then a tabulation will be used.
        */
       template<typename Tdefault, typename Ttabulator=Tabulate::tabulator<double>, typename Tpair=opair<int> >
         class PotentialMapTabulated : public PotentialMap<Tdefault,Tpair> {
@@ -830,7 +838,6 @@ namespace Faunus {
             particle b;
             b = atom[id2];
             base::add(a.id,b.id,pot);
-            //std::function<double(particle&, particle&, double)> func = pot;
             std::function<double(double)> func = [=](double r2) {return Tpairpot(pot)(a,b,r2);};
             mtab[ Tpair(id1,id2) ] = tab.generate(func);
           }
@@ -885,17 +892,16 @@ namespace Faunus {
     
     
     /**
-     * @brief Custom tabulated potentials between specific particle types
+     * @brief Similar to PotentialMapTabulated but faster
      *
      * If the pair is not recognized, i.e. not added with the
-     * `add()` function, the `Tdefault` pair potential is used.
-     * If the pair is found then a tabulation is used.
+     * `add()` function, the pairpotential will use generate_empty().
+     * Recommended for the user to specify all pairs in `add()`
      */
-    template<typename Tdefault, typename Tpair=opair<int> >
+    template<typename Tdefault, typename Ttabulator=Tabulate::tabulator<double>, typename Tpair=opair<int> >
     class PotentialVecTabulated : public PotentialMap<Tdefault,Tpair> {
     private:
       typedef PotentialMap<Tdefault,Tpair> base;
-      typedef Tabulate::tabulator<double> Ttabulator;
       Ttabulator tab;
       std::map<Tpair, typename Ttabulator::data> mtab;
       vector<typename Ttabulator::data> vtab;
@@ -934,11 +940,11 @@ namespace Faunus {
         b = atom[id2];
         base::add(a.id,b.id,pot);
         std::function<double(double)> func = [=](double r2) {return Tpairpot(pot)(a,b,r2);};
-        Ttabulator::data tg = tab.generate_full(func);
-        
+        typename Ttabulator::data tg = tab.generate_full(func);
         mtab[ Tpair(id1,id2) ] = tg;
         vtab[id1*atomlistsize+id2] = tg;
         vtab[id2*atomlistsize+id1] = tg;
+
       }
       std::string info(char w=20) {
         std::ostringstream o( base::info(w) );
@@ -947,7 +953,7 @@ namespace Faunus {
         using namespace Faunus::textio;
         for (unsigned int i = 0; i < atom.list.size(); i++) {
           for (unsigned int j = 0; j < atom.list.size(); j++) {
-            o << pad(SUB,w,"("+atom.list[i].name+"<->"+atom.list[j].name+"): ") << std::endl << tab.print(vtab[atom.list[i].id*atomlistsize+atom.list[j].id]) << std::endl;
+            o << pad(SUB,w,"Nbr of elements in table ("+atom.list[i].name+"<->"+atom.list[j].name+"): ") << vtab[atom.list[i].id*atomlistsize+atom.list[j].id].r2.size() << std::endl;
           }
         }
         

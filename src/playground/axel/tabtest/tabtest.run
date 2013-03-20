@@ -34,8 +34,8 @@ dh_debyelength       0.1
 polymer1_N             1
 polymer2_N             1
 
-tab_utol              0.0001
-tab_ftol              0.0001
+tab_utol              0.001
+tab_ftol              0.001
 tab_rmin              3
 tab_rmax              200
 
@@ -63,6 +63,6 @@ mkinput
 time ./$exe # > eq
 
 # Prod
-micro=10000
+micro=2000
 mkinput
 time ./$exe > prod

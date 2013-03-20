@@ -3,12 +3,19 @@
 
 //#define tab
 //#define tabopt
-//#define org
+
+//#define tabherm
+//#define taboptherm
+
+//#define tablin
+//#define taboptlin
+
+#define org
 
 
 //#define tabsingle
 //#define taboptsingle
-#define orgsingle
+//#define orgsingle
 
 using namespace Faunus;
 using namespace std;
@@ -29,7 +36,27 @@ int main(int argc, char** argv) {
 
   Energy::Hamiltonian pot;
 #ifdef tab
-  Energy::Nonbonded<Potential::PotentialMapTabulated<Tpairpot>,Tgeometry> nb(mcp); // Tabulation
+  Energy::Nonbonded<Potential::PotentialMapTabulated<Tpairpot,Tabulate::tabulator<double>>,Tgeometry> nb(mcp); // Tabulation
+  nb.pairpot.add(atom["Ca"].id,atom["Ca"].id,Tpairpot(mcp));
+  nb.pairpot.add(atom["Ca"].id,atom["Cl"].id,Tpairpot(mcp));
+  nb.pairpot.add(atom["Ca"].id,atom["Na"].id,Tpairpot(mcp));
+  nb.pairpot.add(atom["Na"].id,atom["Na"].id,Tpairpot(mcp));
+  nb.pairpot.add(atom["Na"].id,atom["Cl"].id,Tpairpot(mcp));
+  nb.pairpot.add(atom["Cl"].id,atom["Cl"].id,Tpairpot(mcp));
+  auto nonbonded = pot.create(nb);
+#endif
+#ifdef tablin
+  Energy::Nonbonded<Potential::PotentialMapTabulated<Tpairpot,Tabulate::tabulatorlin<double>>,Tgeometry> nb(mcp); // Tabulation
+  nb.pairpot.add(atom["Ca"].id,atom["Ca"].id,Tpairpot(mcp));
+  nb.pairpot.add(atom["Ca"].id,atom["Cl"].id,Tpairpot(mcp));
+  nb.pairpot.add(atom["Ca"].id,atom["Na"].id,Tpairpot(mcp));
+  nb.pairpot.add(atom["Na"].id,atom["Na"].id,Tpairpot(mcp));
+  nb.pairpot.add(atom["Na"].id,atom["Cl"].id,Tpairpot(mcp));
+  nb.pairpot.add(atom["Cl"].id,atom["Cl"].id,Tpairpot(mcp));
+  auto nonbonded = pot.create(nb);
+#endif
+#ifdef tabherm
+  Energy::Nonbonded<Potential::PotentialMapTabulated<Tpairpot,Tabulate::tabulatorherm<double>>,Tgeometry> nb(mcp); // Tabulation
   nb.pairpot.add(atom["Ca"].id,atom["Ca"].id,Tpairpot(mcp));
   nb.pairpot.add(atom["Ca"].id,atom["Cl"].id,Tpairpot(mcp));
   nb.pairpot.add(atom["Ca"].id,atom["Na"].id,Tpairpot(mcp));
@@ -39,7 +66,27 @@ int main(int argc, char** argv) {
   auto nonbonded = pot.create(nb);
 #endif
 #ifdef tabopt
-  Energy::Nonbonded<Potential::PotentialVecTabulated<Tpairpot>,Tgeometry> nb(mcp); // Tabulation optimized
+  Energy::Nonbonded<Potential::PotentialVecTabulated<Tpairpot,Tabulate::tabulator<double>>,Tgeometry> nb(mcp); // Tabulation optimized
+  nb.pairpot.add(atom["Ca"].id,atom["Ca"].id,Tpairpot(mcp));
+  nb.pairpot.add(atom["Ca"].id,atom["Cl"].id,Tpairpot(mcp));
+  nb.pairpot.add(atom["Ca"].id,atom["Na"].id,Tpairpot(mcp));
+  nb.pairpot.add(atom["Na"].id,atom["Na"].id,Tpairpot(mcp));
+  nb.pairpot.add(atom["Na"].id,atom["Cl"].id,Tpairpot(mcp));
+  nb.pairpot.add(atom["Cl"].id,atom["Cl"].id,Tpairpot(mcp));
+  auto nonbonded = pot.create(nb);
+#endif
+#ifdef taboptlin
+  Energy::Nonbonded<Potential::PotentialVecTabulated<Tpairpot,Tabulate::tabulatorlin<double>>,Tgeometry> nb(mcp); // Tabulation optimized
+  nb.pairpot.add(atom["Ca"].id,atom["Ca"].id,Tpairpot(mcp));
+  nb.pairpot.add(atom["Ca"].id,atom["Cl"].id,Tpairpot(mcp));
+  nb.pairpot.add(atom["Ca"].id,atom["Na"].id,Tpairpot(mcp));
+  nb.pairpot.add(atom["Na"].id,atom["Na"].id,Tpairpot(mcp));
+  nb.pairpot.add(atom["Na"].id,atom["Cl"].id,Tpairpot(mcp));
+  nb.pairpot.add(atom["Cl"].id,atom["Cl"].id,Tpairpot(mcp));
+  auto nonbonded = pot.create(nb);
+#endif
+#ifdef taboptherm
+  Energy::Nonbonded<Potential::PotentialVecTabulated<Tpairpot,Tabulate::tabulatorherm<double>>,Tgeometry> nb(mcp); // Tabulation optimized
   nb.pairpot.add(atom["Ca"].id,atom["Ca"].id,Tpairpot(mcp));
   nb.pairpot.add(atom["Ca"].id,atom["Cl"].id,Tpairpot(mcp));
   nb.pairpot.add(atom["Ca"].id,atom["Na"].id,Tpairpot(mcp));
