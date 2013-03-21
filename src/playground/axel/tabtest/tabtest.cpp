@@ -10,10 +10,11 @@
 //#define tablin
 //#define taboptlin
 
-#define org
+//#define org
+//#define orgopt
 
 
-//#define tabsingle
+#define tabsingle
 //#define taboptsingle
 //#define orgsingle
 
@@ -97,6 +98,16 @@ int main(int argc, char** argv) {
 #endif
 #ifdef org
   Energy::Nonbonded<Potential::PotentialMap<Tpairpot>,Tgeometry> nb(mcp); //  Non-tabulation
+  nb.pairpot.add(atom["Ca"].id,atom["Ca"].id,Tpairpot(mcp));
+  nb.pairpot.add(atom["Ca"].id,atom["Cl"].id,Tpairpot(mcp));
+  nb.pairpot.add(atom["Ca"].id,atom["Na"].id,Tpairpot(mcp));
+  nb.pairpot.add(atom["Na"].id,atom["Na"].id,Tpairpot(mcp));
+  nb.pairpot.add(atom["Na"].id,atom["Cl"].id,Tpairpot(mcp));
+  nb.pairpot.add(atom["Cl"].id,atom["Cl"].id,Tpairpot(mcp));
+  auto nonbonded = pot.create(nb);
+#endif
+#ifdef orgopt
+  Energy::Nonbonded<Potential::PotentialVec<Tpairpot>,Tgeometry> nb(mcp); //  Non-tabulation
   nb.pairpot.add(atom["Ca"].id,atom["Ca"].id,Tpairpot(mcp));
   nb.pairpot.add(atom["Ca"].id,atom["Cl"].id,Tpairpot(mcp));
   nb.pairpot.add(atom["Ca"].id,atom["Na"].id,Tpairpot(mcp));

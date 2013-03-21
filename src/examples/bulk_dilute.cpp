@@ -5,57 +5,24 @@ using namespace Faunus::Potential;
 
 
 //#define tab
-#define tabopt
+//#define tabopt
 //#define tabhermopt
 //#define tablinopt
 
-//#define org
+#define org
 
 
 typedef Geometry::Cuboid Tgeometry;   // geometry: cube w. periodic boundaries
 
 
-
-typedef CombinedPairPotential<CoulombWolf,LennardJonesLB> Tpairpot; // pair potential
-
-/*
-template<class Tpairpot, class Tgeometry>
-class NonbondedEwald : public Energy::Energybase {
-  private:
-    Ewald<double> ew;
-    Space* _spc;
-  public:
-    Tgeometry geo;
-    Tpairpot pair;
-
-    double p2p(const particle &a, const particle &b) FOVERRIDE {
-      double r2=geo.sqdist(a,b);
-      return ew.rSpaceEnergy(a.charge*b.charge, sqrt(r2)) + pair(a,b,r2);
-    }
-
-    double i2all(const p_vec &p, int i) FOVERRIDE {
-      if (&p==&(spc->trial)) {
-        ew.store();
-        eq.kSpaceUpdate(p);
-      }
-
-      assert(i>=0 && i<int(p.size()) && "index i outside particle vector");
-      double u=0;
-      int n=(int)p.size();
-      for (int j=0; j<i; ++j)
-        u+=pairpot( p[i], p[j], geometry.sqdist(p[i],p[j]) );
-      for (int j=i+1; j<n; ++j)
-        u+=pairpot( p[i], p[j], geometry.sqdist(p[i],p[j]) );
-      return u;
-    }
-
-};*/
+//
+typedef Buckingham Tpairpot; // pair potential
 
 int main() {
   cout << textio::splash();           // show faunus banner and credits
 
 
-  InputMap mcp("bulk.input");         // open user input file
+  InputMap mcp("bulk_dilute.input");         // open user input file
   MCLoop loop(mcp);                   // class for handling mc loops
   EnergyDrift sys;                    // class for tracking system energy drifts
   UnitTest test(mcp);                 // class for unit testing
@@ -87,7 +54,6 @@ int main() {
 */
 
   // Markov moves and analysis
-  Move::Isobaric iso(mcp,pot,spc);
   Move::AtomicTranslation mv(mcp, pot, spc);
   Analysis::RadialDistribution<> rdf_ab(0.1);      // 0.1 angstrom resolution
 
@@ -98,15 +64,11 @@ int main() {
 
   spc.load("state");                               // load old config. from disk (if any)
   sys.init( Energy::systemEnergy(spc,pot,spc.p)  );// store initial total system energy
-
   cout << atom.info() << spc.info() << pot.info() << textio::header("MC Simulation Begins!");
 
   while ( loop.macroCnt() ) {  // Markov chain 
     while ( loop.microCnt() ) {
-      if (slp_global() < 0.5)
-        sys+=mv.move( salt.size() );  // translate salt
-      else 
-        sys+=iso.move();              // isobaric volume move
+      sys+=mv.move( salt.size() );  // translate salt
 
       if (slp_global() < 0.05) {
         particle::Tid a=atom["Na"].id, b=atom["Cl"].id;
@@ -128,13 +90,12 @@ int main() {
   spc.save("state");              // final simulation state
 
   // perform unit tests (irrelevant for the simulation)
-  iso.test(test);
   mv.test(test);
   sys.test(test);
   nonbonded->pairpot.test(test);
 
   // print information
-  cout << loop.info() << sys.info() << mv.info() << iso.info() << test.info();
+  cout << loop.info() << sys.info() << mv.info() << test.info();
 
   return test.numFailed();
 }

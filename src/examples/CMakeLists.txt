@@ -35,3 +35,7 @@ fau_example(example_bulk "./" bulk.cpp)
 set_target_properties(example_bulk PROPERTIES OUTPUT_NAME "bulk")
 add_test( example_bulk ${CMAKE_CURRENT_SOURCE_DIR}/bulk.run )
 
+fau_example(example_bulk_dilute "./" bulk_dilute.cpp)
+set_target_properties(example_bulk_dilute PROPERTIES OUTPUT_NAME "bulk_dilute")
+add_test( example_bulk_dilute ${CMAKE_CURRENT_SOURCE_DIR}/bulk_dilute.run )
+

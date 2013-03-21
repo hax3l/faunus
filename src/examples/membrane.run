@@ -27,7 +27,7 @@ echo "3
 echo "
 atomlist               membrane.json
 loop_macrosteps        5
-loop_microsteps        1000
+loop_microsteps        2000
 cuboid_len             -1        # Box side length Angstrom
 cuboid_xlen            $box
 cuboid_ylen            $box
@@ -64,12 +64,12 @@ cuboid_scaledir        XY
 test_stable            no
 test_file              membrane.test
 
-tab_rmin              7
+tab_rmin              8.5
 tab_rmax              100
 tab_utol              0.001
 tab_ftol              0.001
-tab_umaxtol           25
-tab_fmaxtol           25
+tab_umaxtol           35
+tab_fmaxtol           35
 
 tab_print             0
 

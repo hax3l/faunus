@@ -47,7 +47,7 @@ namespace Faunus {
   }
 
   void EnergyDrift::test(UnitTest &t) {
-    t("energyAverage", avg.avg() );                                                           
+    t("energyAverage", avg.avg(), 0.05);                                                           
     t("relativeEnergyDrift", std::abs(drift/current()), 10.0 ); // allow 200% deviation    
   }
 }//namespace

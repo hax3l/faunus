@@ -639,6 +639,10 @@
 		B872C36716F391A4006A4793 /* tabtest.run */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = tabtest.run; sourceTree = "<group>"; };
 		B87DD71516F721BE00E4C566 /* membrane.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = membrane.cpp; path = ../../src/examples/membrane.cpp; sourceTree = "<group>"; };
 		B87DD71616F721BE00E4C566 /* membrane.run */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; name = membrane.run; path = ../../src/examples/membrane.run; sourceTree = "<group>"; };
+		B87DD71A16FA197C00E4C566 /* bulk.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = bulk.cpp; path = ../../src/examples/bulk.cpp; sourceTree = "<group>"; };
+		B87DD71B16FA197C00E4C566 /* bulk.run */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; name = bulk.run; path = ../../src/examples/bulk.run; sourceTree = "<group>"; };
+		B87DD71F16FB0AD100E4C566 /* bulk_dilute.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = bulk_dilute.cpp; path = ../../src/examples/bulk_dilute.cpp; sourceTree = "<group>"; };
+		B87DD72016FB0AD100E4C566 /* bulk_dilute.run */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; name = bulk_dilute.run; path = ../../src/examples/bulk_dilute.run; sourceTree = "<group>"; };
 		B8FAFBED1687DFF3001E9A89 /* temper.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = temper.cpp; sourceTree = "<group>"; };
 		B8FAFBEE1687DFF3001E9A89 /* temper.run */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = temper.run; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -1398,6 +1402,10 @@
 		B87DD71316F7219500E4C566 /* examples */ = {
 			isa = PBXGroup;
 			children = (
+				B87DD71F16FB0AD100E4C566 /* bulk_dilute.cpp */,
+				B87DD72016FB0AD100E4C566 /* bulk_dilute.run */,
+				B87DD71A16FA197C00E4C566 /* bulk.cpp */,
+				B87DD71B16FA197C00E4C566 /* bulk.run */,
 				B87DD71516F721BE00E4C566 /* membrane.cpp */,
 				B87DD71616F721BE00E4C566 /* membrane.run */,
 			);

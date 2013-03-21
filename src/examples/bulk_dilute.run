@@ -1,0 +1,57 @@
+#!/bin/bash
+
+# THIS RUN SCRIPT IS USED AS A UNIT TEST SO PLEASE
+# DO NOT UPLOAD ANY MODIFIED VERSIONS TO SVN UNLESS
+# TO UPDATE THE TEST.
+
+source_tests_dir="`dirname $0`"
+cp -f $source_tests_dir/bulk_dilute.test . 2> /dev/null
+cp -f $source_tests_dir/bulk_dilute.state state 2> /dev/null
+
+echo '{
+  "atomlist" : {
+    "Na" : { "q": 1.0, "dp":100.0  },  // sodium ion
+    "Cl" : { "q":-1.0, "dp":100.0  }   // chloride ion
+  }
+}' > bulk.json
+
+echo "
+atomlist        bulk.json    # atom properties
+cuboid_len      200           # angstrom
+
+temperature     300         # K
+epsilon_r       80          # dielectric const.
+
+
+dh_debyelength  100           # angstrom
+buck_A          10000.0
+buck_B          1.0
+buck_C          0.0
+
+loop_macrosteps 3           # number of macro loops
+loop_microsteps 20           # number of micro loops
+
+tion1  Na
+nion1  1152                  # number of sodium atoms
+tion2  Cl
+nion2  1152                  # number of chloride atoms
+
+tab_rmin              2.0
+tab_rmax              160
+tab_utol              0.001
+tab_ftol              0.001
+tab_print             100
+
+test_stable        no
+test_file          bulk_dilute.test
+" > bulk_dilute.input
+
+
+exe=./bulk_dilute
+if [ -x $exe ]; then
+ $exe
+ rc=$?
+ exit $rc
+fi
+exit 1
+

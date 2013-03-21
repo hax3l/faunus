@@ -2,7 +2,11 @@
 
 //#define tab
 //#define tabopt
-#define org
+#define tabhermopt
+//#define tablinopt
+
+//#define org
+//#define orgopt
 
 using namespace Faunus;
 
@@ -40,10 +44,16 @@ void MakeDesernoMembrane(const Tlipid &lipid, Tbonded &bond, Tnonbonded &nb, Tin
   nb.pairpot.add(tid, tid, tailtail);
   nb.pairpot.add(hid, tid, headtail);
 #ifdef tab
-  nb.pairpot.print_tabulation(); // Print files to compare tabulation with real potential
+  nb.pairpot.print_tabulation(10000); // Print files to compare tabulation with real potential
 #endif
 #ifdef tabopt
-  nb.pairpot.print_tabulation(); // Print files to compare tabulation with real potential
+  nb.pairpot.print_tabulation(10000); // Print files to compare tabulation with real potential
+#endif
+#ifdef tabhermopt
+  nb.pairpot.print_tabulation(10000); // Print files to compare tabulation with real potential
+#endif
+#ifdef tablinopt
+  nb.pairpot.print_tabulation(10000); // Print files to compare tabulation with real potential
 #endif
 
   // bonded interactions
@@ -71,8 +81,17 @@ typedef Potential::PotentialMapTabulated<Potential::DebyeHuckelLJ> Tpairpot;
 #ifdef tabopt
 typedef Potential::PotentialVecTabulated<Potential::DebyeHuckelLJ> Tpairpot;
 #endif
+#ifdef tabhermopt
+typedef Potential::PotentialVecTabulated<Potential::DebyeHuckelLJ,Tabulate::tabulatorherm<double>> Tpairpot;
+#endif
+#ifdef tablinopt
+typedef Potential::PotentialVecTabulated<Potential::DebyeHuckelLJ,Tabulate::tabulatorlin<double>> Tpairpot;
+#endif
 #ifdef org
 typedef Potential::PotentialMap<Potential::DebyeHuckelLJ> Tpairpot;
+#endif
+#ifdef orgopt
+typedef Potential::PotentialVec<Potential::DebyeHuckelLJ> Tpairpot;
 #endif
 
 

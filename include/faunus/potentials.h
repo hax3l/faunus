@@ -639,6 +639,47 @@ namespace Faunus {
         double activityCoeff(double, double=0) const; //!< Single ion activity coefficient (molar scale) 
         string info(char);
     };
+    
+    
+    
+    
+    
+    
+    class Buckingham : public DebyeHuckel {
+    private:
+      string _brief() {
+        return "Buckingham";
+      }
+    protected:
+      double A,B,C,cut2;
+    public:
+      Buckingham(); // __attribute__ ((deprecated));
+      inline Buckingham(InputMap& in, string pfx="buck_") : DebyeHuckel(in) { // __attribute__ ((deprecated));
+        A=in.get<double>(pfx+"A",1.0);
+        B=in.get<double>(pfx+"B",1.0);
+        C=in.get<double>(pfx+"C",1.0);
+        cut2=in.get<double>(pfx+"cut2",1.0);
+      }
+      inline double operator() (const particle &a, const particle &b, double r2) const FOVERRIDE {
+        if (r2 < cut2)
+          return pc::infty;
+        else {
+          double x=1/r2; // r2
+          x=x*x*x; // r6
+          double r = sqrt(r2);
+          return A*exp(-B*r )-C*x+lB * a.charge * b.charge / r * exp(-k*r);
+        }
+      }
+      string info(char w) {
+        using namespace Faunus::textio;
+        std::ostringstream o;
+        o << DebyeHuckel::info(w) << endl;
+        o << pad(SUB,w+1,"A") << A << endl;
+        o << pad(SUB,w+1,"B") << B << endl;
+        o << pad(SUB,w+1,"C") << C << endl;
+        return o.str();
+      }
+    };
 
     /**
      * @brief DebyeHuckel shifted to reaach zero at given cut-off
@@ -704,6 +745,51 @@ namespace Faunus {
         };
     
     /**
+     * @brief Custom potentials between specific particle types
+     *
+     * If the pair is not recognized, i.e. not added with the
+     * `add()` function, the `Tdefault` pair potential is used.
+     */
+    template<typename Tdefault, typename Tpair=opair<particle::Tid> >
+        class PotentialVec : public Tdefault {
+        protected:
+          vector< std::shared_ptr<PairPotentialBase> > v;
+          unsigned int atomlistsize;
+        public:
+          PotentialVec(InputMap &in) : Tdefault(in) {
+            Tdefault::name += " (default)";
+            
+            // Filling up matrix with NULL
+            atomlistsize = atom.list.size();
+            for (unsigned int i = 0; i < atom.list.size(); i++) {
+              for (unsigned int j = 0; j < atom.list.size(); j++) {
+                v.push_back(std::shared_ptr<Tdefault>(new Tdefault(in)));
+              }
+            }
+          } 
+          
+          template<class Tpairpot>
+          void add(int id1, int id2, Tpairpot pot) {
+            pot.name=atom[id1].name + "<->" + atom[id2].name + ": " + pot.name;
+            v[id1*atomlistsize+id2].reset(new Tpairpot(pot));
+            v[id2*atomlistsize+id1].reset(new Tpairpot(pot));
+          }
+          
+          template<class Tparticle, class Tdist>
+          double operator()(const Tparticle &a, const Tparticle &b, Tdist r2) const {
+            return v[a.id*atomlistsize+b.id]->operator()(a,b,r2);
+          }
+          
+          std::string info(char w=20) {
+            std::ostringstream o( Tdefault::info(w) );
+            for (unsigned int i = 0; i < v.size(); i++)
+              if (v[i] != NULL)
+                o << "\n  " + v[i]->name + ":\n" << v[i]->info(w);
+            return o.str();
+          }
+        };
+    
+    /**
      * @brief Tabulated potential between all particle types
      *
      * If the pair is not recognized, the pair-potential will be tabulated
@@ -748,9 +834,9 @@ namespace Faunus {
       private:
         Ttabulator tab;
         typedef opair<int> Tpair;
-        std::map<Tpair, typename Ttabulator::data > m;
         vector<typename Ttabulator::data> vtab;
         unsigned int atomlistsize;
+        int print;
       public:
         PotentialTabulateVec(InputMap &in) : Tpairpot(in) {
           
@@ -762,6 +848,8 @@ namespace Faunus {
                            in.get<double>("tab_umaxtol", -1), 
                            in.get<double>("tab_fmaxtol", -1));
           
+          print = in.get<int>("tab_print",0);
+          
           // Filling up matrix of tabulated data
           atomlistsize = atom.list.size();
           for (unsigned int i = 0; i < atom.list.size(); i++) {
@@ -772,11 +860,37 @@ namespace Faunus {
               std::function<double(double)> func = [=](double r2) {return Tpairpot(*this)(a,b,r2);};
               typename Ttabulator::data td = tab.generate_full(func);
               vtab.push_back(td);
+              
+              if (print > 1) {
+                int n = print;
+                if (vtab[a.id*atomlistsize+b.id].r2.size() > 2) {
+                  std::cout << atom[i].name << "<->" << atom[j].name << " r2.size() " << vtab[a.id*atomlistsize+b.id].r2.size() << std::endl;
+                  std::ofstream ff1(std::string(atom[i].name+"."+atom[j].name+".real.dat").c_str());
+                  ff1.precision(10);
+                  
+                  std::ofstream ff2(std::string(atom[i].name+"."+atom[j].name+".tab.dat").c_str());
+                  ff2.precision(10);
+                  double max = vtab[a.id*atomlistsize+b.id].r2.at(vtab[a.id*atomlistsize+b.id].r2.size()-2);
+                  double min = vtab[atom.list[i].id*atomlistsize+atom.list[j].id].r2.at(1);
+                  double dr = (max-min)/(double)n;
+                  for (int k = 0; k < n; k++) {
+                    double r2 = min+dr*((double)k)+0.0000000000001;
+                    ff1 << sqrt(r2) << " " << Tpairpot(*this)(a,b,r2) << std::endl;
+                    ff2 << sqrt(r2) << " " << tab.eval(vtab[a.id*atomlistsize+b.id], r2) << std::endl;
+                  }
+                  ff1.close();
+                  ff2.close();
+                }
+              }
+              
+              
             }
           }
           
         } 
         double operator()(const particle &a, const particle &b, double r2) {
+          //if (abs(tab.eval(vtab[a.id*atomlistsize+b.id], r2)-Tpairpot(*this)(a,b,r2)) > 0.001)
+            //std::cout << "r2 " << r2 << " :: " << abs(tab.eval(vtab[a.id*atomlistsize+b.id], r2)-Tpairpot(*this)(a,b,r2)) << std::endl;
           return tab.eval(vtab[a.id*atomlistsize+b.id], r2);
         }
       };
@@ -903,7 +1017,6 @@ namespace Faunus {
     private:
       typedef PotentialMap<Tdefault,Tpair> base;
       Ttabulator tab;
-      std::map<Tpair, typename Ttabulator::data> mtab;
       vector<typename Ttabulator::data> vtab;
       unsigned int atomlistsize;
     public:
@@ -911,11 +1024,10 @@ namespace Faunus {
       PotentialVecTabulated(InputMap &in) : base(in) {
         
         // Filling up matrix of empty tabulated data
-        typename Ttabulator::data td = tab.generate_empty();
         atomlistsize = atom.list.size();
         for (unsigned int i = 0; i < atom.list.size(); i++) {
           for (unsigned int j = 0; j < atom.list.size(); j++) {
-            vtab.push_back(td);
+            vtab.push_back(tab.generate_empty());
           }
         }
         
@@ -941,7 +1053,6 @@ namespace Faunus {
         base::add(a.id,b.id,pot);
         std::function<double(double)> func = [=](double r2) {return Tpairpot(pot)(a,b,r2);};
         typename Ttabulator::data tg = tab.generate_full(func);
-        mtab[ Tpair(id1,id2) ] = tg;
         vtab[id1*atomlistsize+id2] = tg;
         vtab[id2*atomlistsize+id1] = tg;
 
@@ -961,32 +1072,32 @@ namespace Faunus {
         return o.str();
       }
       void print_tabulation(int n=1000) {
-        for (auto &i : mtab) {
-          auto ab = Tpair(i.first.first,i.first.second);
-          auto it=mtab.find(ab);
-          
-          particle a;
-          a = atom[i.first.first];
-          particle b;
-          b = atom[i.first.second];
-          
-          std::ofstream ff1(std::string(atom[i.first.first].name+"."+atom[i.first.second].name+".real.dat").c_str());
-          ff1.precision(10);
-          
-          std::ofstream ff2(std::string(atom[i.first.first].name+"."+atom[i.first.second].name+".tab.dat").c_str());
-          ff2.precision(10);
-          
-          double max = it->second.r2.at(it->second.r2.size()-2);
-          double min = it->second.rmin2;
-          double dr = (max-min)/(double)n;
-          for (int j = 1; j < n; j++) {
-            double r2 = min+dr*((double)j);
-            ff1 << sqrt(r2) << " " << base::m[ab]->operator()(a,b,r2) << std::endl;
-            ff2 << sqrt(r2) << " " << tab.eval(it->second, r2) << std::endl;
+        for (unsigned int i = 0; i < atom.list.size(); i++) {
+          for (unsigned int j = 0; j < atom.list.size(); j++) {
+            
+            particle a;
+            a = atom[i];
+            particle b;
+            b = atom[j];
+            if (vtab[a.id*atomlistsize+b.id].r2.size() > 2) {
+              auto ab = Tpair(a.id,b.id);
+              std::ofstream ff1(std::string(atom[i].name+"."+atom[j].name+".real.dat").c_str());
+              ff1.precision(10);
+              
+              std::ofstream ff2(std::string(atom[i].name+"."+atom[j].name+".tab.dat").c_str());
+              ff2.precision(10);
+              double max = vtab[a.id*atomlistsize+b.id].r2.at(vtab[a.id*atomlistsize+b.id].r2.size()-2);
+              double min = vtab[atom.list[i].id*atomlistsize+atom.list[j].id].r2.at(1);
+              double dr = (max-min)/(double)n;
+              for (int k = 0; k < n; k++) {
+                double r2 = min+dr*((double)k)+0.0000000000001;
+                ff1 << sqrt(r2) << " " << base::m[ab]->operator()(a,b,r2) << std::endl;
+                ff2 << sqrt(r2) << " " << tab.eval(vtab[a.id*atomlistsize+b.id], r2) << std::endl;
+              }
+              ff1.close();
+              ff2.close();
+            }
           }
-          
-          ff1.close();
-          ff2.close();
         }
       }
     };

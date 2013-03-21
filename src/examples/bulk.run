@@ -23,13 +23,19 @@ temperature     1100         # K
 epsilon_r       1            # dielectric const.
 coulomb_cut     14.          # coulomb cutoff [angstrom]
 
-loop_macrosteps 10           # number of macro loops
+loop_macrosteps 5           # number of macro loops
 loop_microsteps 50           # number of micro loops
 
 tion1  Na
 nion1  1152                  # number of sodium atoms
 tion2  Cl
 nion2  1152                  # number of chloride atoms
+
+tab_rmin              2.2
+tab_rmax              40
+tab_utol              0.1
+tab_ftol              0.1
+tab_print             1000
 
 npt_dV 0                     # 0.04 (0=no volume displacement=NVT)
 npt_P  11.                   # external pressure [mM]

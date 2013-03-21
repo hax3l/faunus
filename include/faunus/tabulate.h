@@ -4,6 +4,7 @@
 #ifndef SWIG
 
 #include <iostream>
+#include <cstdlib>
 #include <fstream>
 #include <vector>
 #include <functional>
@@ -11,7 +12,6 @@
 #include <algorithm>
 #include <cmath>
 #include <memory>
-#include <assert.h>
 
 #endif
 
@@ -92,7 +92,7 @@ namespace Faunus {
       
       // gets tabulated value at r2
       T eval(const typename base::data& d, T r2) const {
-        const typename std::vector<T>::const_iterator low = std::lower_bound(d.r2.begin(), d.r2.end(), r2);
+        auto low = std::lower_bound(d.r2.begin(), d.r2.end(), r2);
         int pos = (low-d.r2.begin()-1);
         T min = d.r2[pos];
         T dz = r2-min;
@@ -204,7 +204,7 @@ namespace Faunus {
         
         // Number of points to control
         int ncheck = 11;
-        double dr = (rupp-rlow)/(ncheck-1);
+        T dr = (rupp-rlow)/(ncheck-1);
         
         for (int i = 0; i < ncheck; i++) {
           T r1 = rlow+dr*((T)i);
@@ -267,18 +267,34 @@ namespace Faunus {
       typename base::data
       generate(std::function<T(T)> &f) {
         
-        assert(base::rmin >= 0.0);
-        assert(base::rmax >= 0.0);
-        // rmin larger than rmax
-        assert(base::rmin < base::rmax);
-        // Tolerance of potential not set or negative
-        assert(base::utol > 0.0000000000001);
-        // Tolerance of potential set and negative
-        assert(base::ftol == -1 || base::ftol > 0.0);
-        // Tolerance of repulsion of potential set and negative
-        assert(base::umaxtol == -1 || base::umaxtol > 0.0);
-        // Tolerance of repulsion of potential set and negative
-        assert(base::fmaxtol == -1 || base::fmaxtol > 0.0);
+        if (base::rmin < 0.0) {
+          std::cerr << "rmin=" << base::rmin << ", smaller than zero\n" << std::endl;
+          abort();
+        }
+        if (base::rmax < 0.0) {
+          std::cerr << "rmax=" << base::rmax << ", smaller than zero\n" << std::endl;
+          abort();
+        }
+        if (base::rmin >= base::rmax) {
+          std::cerr << "rmin>=rmax\n" << std::endl;
+          abort();
+        }
+        if (base::utol < 0.0000000000001) {
+          std::cerr << "utol=" << base::utol << " too small\n" << std::endl;
+          abort();
+        }
+        if (base::ftol != -1 && base::ftol <= 0.0) {
+          std::cerr << "ftol=" << base::ftol << " too small\n" << std::endl;
+          abort();
+        }
+        if (base::umaxtol != -1 && base::umaxtol <= 0.0) {
+          std::cerr << "umaxtol=" << base::umaxtol << " too small\n" << std::endl;
+          abort();
+        }
+        if (base::fmaxtol != -1 && base::fmaxtol <= 0.0) {
+          std::cerr << "fmaxtol=" << base::fmaxtol << " too small\n" << std::endl;
+          abort();
+        }
         
         typename base::data td;
         td.rmax2 = base::rmax*base::rmax;
@@ -348,10 +364,16 @@ namespace Faunus {
             dr*=drfrac;
           }
           // Error if j has gone over ndr
-          assert(j < ndr);
+          if (j >= ndr) {
+            std::cerr << "ndr=" << ndr << " is too small such that dr=" << dr << " is not enough. Try to increase utol=" << base::utol << " or ftol=" << base::ftol << "\n" << std::endl;
+            abort();
+          }
           td.r2.push_back(zlow);
           // Wrong size of ubuft, minvalue + 6 coefficients
-          assert(ubuft.size() == 7);
+          if (ubuft.size() != 7) {
+            std::cerr << "ubuft.size()=" << ubuft.size() << " is wrong, contact administrator\n" << std::endl;
+            abort();
+          }
     #ifdef D_MR2
           std::cout<< "saving into td zlow="<<zlow<<" rlow "<<rlow<<" rupp "<<rupp<<std::endl;
           std::cout<< std::endl << "Printing ubuft for dr: " << dr << std::endl;
@@ -376,7 +398,10 @@ namespace Faunus {
             break;
         }
         // mngrid not enough (increase utol or ftol)
-        assert(i < mngrid);
+        if (i >= mngrid) {
+          std::cerr << "mngrid=" << mngrid << " is too small (number of grid points in potential). Try to increase utol=" << base::utol << " or ftol=" << base::ftol << "\n" << std::endl;
+          abort();
+        }
         
         // Sort td
         typename base::data tdsort;
@@ -412,8 +437,8 @@ namespace Faunus {
         tg.c.push_back(0.0);
         
         // Assume infinity from min to zero
-        typename std::vector<T>::iterator it = tg.r2.begin();
-        tg.rmin2 = -0.1;
+        auto it = tg.r2.begin();
+        tg.rmin2 = 0.0;
         tg.r2.insert(it, 0.0);
         
         it = tg.c.begin();
@@ -441,9 +466,10 @@ namespace Faunus {
         typename base::data tg;
         
         // Assume zero at from zero to "infinity"
-        tg.rmin2 = -0.1;
+        tg.rmin2 = 0.0;
         tg.rmax2 = 10000000000000.0;
         tg.r2.push_back(0.0);
+        tg.r2.push_back(10000000000000.0);
         tg.c.push_back(0.0);
         tg.c.push_back(0.0);
         tg.c.push_back(0.0);
@@ -496,7 +522,7 @@ namespace Faunus {
       
       // gets tabulated value at r2
       T eval(const typename base::data& d, T r2) const {
-        const typename std::vector<T>::const_iterator low = std::lower_bound(d.r2.begin(), d.r2.end(), r2);
+        auto low = std::lower_bound(d.r2.begin(), d.r2.end(), r2);
         int pos = (low-d.r2.begin()-1);
         T min = d.r2[pos];
         T dz = r2-min;
@@ -531,7 +557,7 @@ namespace Faunus {
         ubuft.push_back(zlow);
         // Zero potential and force return no coefficients
         if (u0low == 0.0 && u1low == 0.0) {
-          for (int i = 0; i < 6; i++)
+          for (int i = 0; i < 4; i++)
             ubuft.push_back(0.0);
           return ubuft;
         }
@@ -585,8 +611,8 @@ namespace Faunus {
         vb.push_back(false);
         
         // Number of points to control
-        int ncheck = 11;
-        double dr = (rupp-rlow)/(ncheck-1);
+        int ncheck = 101;
+        T dr = (rupp-rlow)/(ncheck-1);
         
         for (int i = 0; i < ncheck; i++) {
           T r1 = rlow+dr*((T)i);
@@ -645,18 +671,34 @@ namespace Faunus {
       typename base::data
       generate(std::function<T(T)> &f) {
         
-        assert(base::rmin >= 0.0);
-        assert(base::rmax >= 0.0);
-        // rmin larger than rmax
-        assert(base::rmin < base::rmax);
-        // Tolerance of potential not set or negative
-        assert(base::utol > 0.0000000000001);
-        // Tolerance of potential set and negative
-        assert(base::ftol == -1 || base::ftol > 0.0);
-        // Tolerance of repulsion of potential set and negative
-        assert(base::umaxtol == -1 || base::umaxtol > 0.0);
-        // Tolerance of repulsion of potential set and negative
-        assert(base::fmaxtol == -1 || base::fmaxtol > 0.0);
+        if (base::rmin < 0.0) {
+          std::cerr << "rmin=" << base::rmin << ", smaller than zero\n" << std::endl;
+          abort();
+        }
+        if (base::rmax < 0.0) {
+          std::cerr << "rmax=" << base::rmax << ", smaller than zero\n" << std::endl;
+          abort();
+        }
+        if (base::rmin >= base::rmax) {
+          std::cerr << "rmin>=rmax\n" << std::endl;
+          abort();
+        }
+        if (base::utol < 0.0000000000001) {
+          std::cerr << "utol=" << base::utol << " too small\n" << std::endl;
+          abort();
+        }
+        if (base::ftol != -1 && base::ftol <= 0.0) {
+          std::cerr << "ftol=" << base::ftol << " too small\n" << std::endl;
+          abort();
+        }
+        if (base::umaxtol != -1 && base::umaxtol <= 0.0) {
+          std::cerr << "umaxtol=" << base::umaxtol << " too small\n" << std::endl;
+          abort();
+        }
+        if (base::fmaxtol != -1 && base::fmaxtol <= 0.0) {
+          std::cerr << "fmaxtol=" << base::fmaxtol << " too small\n" << std::endl;
+          abort();
+        }
         
         typename base::data td;
         td.rmax2 = base::rmax*base::rmax;
@@ -724,10 +766,16 @@ namespace Faunus {
             dr*=drfrac;
           }
           // Error if j has gone over ndr
-          assert(j < ndr);
+          if (j >= ndr) {
+            std::cerr << "ndr=" << ndr << " is too small such that dr=" << dr << " is not enough. Try to increase utol=" << base::utol << " or ftol=" << base::ftol << "\n" << std::endl;
+            abort();
+          }
           td.r2.push_back(zlow);
-          // Wrong size of ubuft, minvalue + 6 coefficients
-          assert(ubuft.size() == 5);
+          // Wrong size of ubuft, minvalue + 4 coefficients
+          if (ubuft.size() != 5) {
+            std::cerr << "ubuft.size()=" << ubuft.size() << " is wrong, contact administrator\n" << std::endl;
+            abort();
+          }
 #ifdef D_MR2
           std::cout<< "saving into td zlow="<<zlow<<" rlow "<<rlow<<" rupp "<<rupp<<std::endl;
           std::cout<< std::endl << "Printing ubuft for dr: " << dr << std::endl;
@@ -752,7 +800,10 @@ namespace Faunus {
             break;
         }
         // mngrid not enough (increase utol or ftol)
-        assert(i < mngrid);
+        if (i >= mngrid) {
+          std::cerr << "mngrid=" << mngrid << " is too small (number of grid points in potential). Try to increase utol=" << base::utol << " or ftol=" << base::ftol << "\n" << std::endl;
+          abort();
+        }
         
         // Sort td
         typename base::data tdsort;
@@ -786,8 +837,8 @@ namespace Faunus {
         tg.c.push_back(0.0);
         
         // Assume infinity from min to zero
-        typename std::vector<T>::iterator it = tg.r2.begin();
-        tg.rmin2 = -0.1;
+        auto it = tg.r2.begin();
+        tg.rmin2 = 0.0;
         tg.r2.insert(it, 0.0);
         
         it = tg.c.begin();
@@ -811,9 +862,10 @@ namespace Faunus {
         typename base::data tg;
         
         // Assume zero at from zero to "infinity"
-        tg.rmin2 = -0.1;
+        tg.rmin2 = 0.0;
         tg.rmax2 = 10000000000000.0;
         tg.r2.push_back(0.0);
+        tg.r2.push_back(10000000000000.0);
         tg.c.push_back(0.0);
         tg.c.push_back(0.0);
         tg.c.push_back(0.0);
@@ -864,7 +916,7 @@ namespace Faunus {
       
       // gets tabulated value at r2
       T eval(const typename base::data& d, T r2) const {
-        const typename std::vector<T>::const_iterator low = std::lower_bound(d.r2.begin(), d.r2.end(), r2);
+        auto low = std::lower_bound(d.r2.begin(), d.r2.end(), r2);
         int pos = (low-d.r2.begin()-1);
         T min = d.r2[pos];
         T dz = r2-min;
@@ -925,7 +977,7 @@ namespace Faunus {
         
         // Number of points to control
         int ncheck = 11;
-        double dr = (rupp-rlow)/(ncheck-1);
+        T dr = (rupp-rlow)/(ncheck-1);
         
         for (int i = 0; i < ncheck; i++) {
           T r1 = rlow+dr*((T)i);
@@ -965,18 +1017,34 @@ namespace Faunus {
       typename base::data
       generate(std::function<T(T)> &f) {
         
-        assert(base::rmin >= 0.0);
-        assert(base::rmax >= 0.0);
-        // rmin larger than rmax
-        assert(base::rmin < base::rmax);
-        // Tolerance of potential not set or negative
-        assert(base::utol > 0.0000000000001);
-        // Tolerance of potential set and negative
-        assert(base::ftol == -1 || base::ftol > 0.0);
-        // Tolerance of repulsion of potential set and negative
-        assert(base::umaxtol == -1 || base::umaxtol > 0.0);
-        // Tolerance of repulsion of potential set and negative
-        assert(base::fmaxtol == -1 || base::fmaxtol > 0.0);
+        if (base::rmin < 0.0) {
+          std::cerr << "rmin=" << base::rmin << ", smaller than zero\n" << std::endl;
+          abort();
+        }
+        if (base::rmax < 0.0) {
+          std::cerr << "rmax=" << base::rmax << ", smaller than zero\n" << std::endl;
+          abort();
+        }
+        if (base::rmin >= base::rmax) {
+          std::cerr << "rmin>=rmax\n" << std::endl;
+          abort();
+        }
+        if (base::utol < 0.0000000000001) {
+          std::cerr << "utol=" << base::utol << " too small\n" << std::endl;
+          abort();
+        }
+        if (base::ftol != -1 && base::ftol <= 0.0) {
+          std::cerr << "ftol=" << base::ftol << " too small\n" << std::endl;
+          abort();
+        }
+        if (base::umaxtol != -1 && base::umaxtol <= 0.0) {
+          std::cerr << "umaxtol=" << base::umaxtol << " too small\n" << std::endl;
+          abort();
+        }
+        if (base::fmaxtol != -1 && base::fmaxtol <= 0.0) {
+          std::cerr << "fmaxtol=" << base::fmaxtol << " too small\n" << std::endl;
+          abort();
+        }
         
         typename base::data td;
         td.rmax2 = base::rmax*base::rmax;
@@ -1042,10 +1110,16 @@ namespace Faunus {
             dr*=drfrac;
           }
           // Error if j has gone over ndr
-          assert(j < ndr);
+          if (j >= ndr) {
+            std::cerr << "ndr=" << ndr << " is too small such that dr=" << dr << " is not enough. Try to increase utol=" << base::utol << " or ftol=" << base::ftol << "\n" << std::endl;
+            abort();
+          }
           td.r2.push_back(zlow);
-          // Wrong size of ubuft, minvalue + 6 coefficients
-          assert(ubuft.size() == 3);
+          // Wrong size of ubuft, minvalue + 2 coefficients
+          if (ubuft.size() != 3) {
+            std::cerr << "ubuft.size()=" << ubuft.size() << " is wrong, contact administrator\n" << std::endl;
+            abort();
+          }
 #ifdef D_MR2
           std::cout<< "saving into td zlow="<<zlow<<" rlow "<<rlow<<" rupp "<<rupp<<std::endl;
           std::cout<< std::endl << "Printing ubuft for dr: " << dr << std::endl;
@@ -1070,7 +1144,10 @@ namespace Faunus {
             break;
         }
         // mngrid not enough (increase utol or ftol)
-        assert(i < mngrid);
+        if (i >= mngrid) {
+          std::cerr << "mngrid=" << mngrid << " is too small (number of grid points in potential). Try to increase utol=" << base::utol << " or ftol=" << base::ftol << "\n" << std::endl;
+          abort();
+        }
         
         // Sort td
         typename base::data tdsort;
@@ -1099,8 +1176,8 @@ namespace Faunus {
         tg.c.push_back(0.0);
         tg.c.push_back(0.0);
         // Assume infinity from min to zero
-        typename std::vector<T>::iterator it = tg.r2.begin();
-        tg.rmin2 = -0.1;
+        auto it = tg.r2.begin();
+        tg.rmin2 = 0.0;
         tg.r2.insert(it, 0.0);
         
         it = tg.c.begin();
@@ -1119,8 +1196,10 @@ namespace Faunus {
         
         typename base::data tg;
         // Assume zero at from zero to "infinity"
-        tg.rmin2 = -0.1;
+        tg.rmin2 = 0.0;
         tg.rmax2 = 10000000000000.0;
+        tg.r2.push_back(0.0);
+        tg.r2.push_back(10000000000000.0);
         tg.c.push_back(0.0);
         tg.c.push_back(0.0);
         
