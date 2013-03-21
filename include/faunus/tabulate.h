@@ -97,13 +97,6 @@ namespace Faunus {
         T min = d.r2[pos];
         T dz = r2-min;
         int pos6 = 6*pos;
-#ifdef FP_FAST_FMA
-        T a1 = std::fma(dz,d.c[pos6+5],d.c[pos6+4]);
-        T a2 = std::fma(dz,a1,d.c[pos6+3]);
-        T a3 = std::fma(dz,a2,d.c[pos6+2]);
-        T a4 = std::fma(dz,a3,d.c[pos6+1]);
-        T usum = std::fma(dz,a4,d.c[pos6+0]);   
-#else
         T usum =  d.c[pos6+0]+
                   dz*(d.c[pos6+1]+
                   dz*(d.c[pos6+2]+
@@ -111,7 +104,6 @@ namespace Faunus {
                   dz*(d.c[pos6+4]+
                   dz*(d.c[pos6+5])
                   ))));
-#endif
         
         return usum;
         
@@ -527,17 +519,11 @@ namespace Faunus {
         T min = d.r2[pos];
         T dz = r2-min;
         int pos4 = 4*pos;
-#ifdef FP_FAST_FMA
-        T a1 = std::fma(dz,d.c[pos4+3],d.c[pos4+2]);
-        T a2 = std::fma(dz,a1,d.c[pos4+1]);
-        T usum = std::fma(dz,a2,d.c[pos4+0]);   
-#else
         T usum =  d.c[pos4+0]+
                   dz*(d.c[pos4+1]+
                   dz*(d.c[pos4+2]+
                   dz*(d.c[pos4+3])
                   ));
-#endif
         
         return usum;
         
@@ -921,12 +907,8 @@ namespace Faunus {
         T min = d.r2[pos];
         T dz = r2-min;
         int pos2 = 2*pos;
-#ifdef FP_FAST_FMA
-        T usum = std::fma(dz,d.c[pos2+1],d.c[pos2+0]);   
-#else
         T usum =  d.c[pos2+0]+
                   dz*d.c[pos2+1];
-#endif
         
         return usum;
         

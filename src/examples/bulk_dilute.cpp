@@ -5,11 +5,11 @@ using namespace Faunus::Potential;
 
 
 //#define tab
-//#define tabopt
+#define tabopt
 //#define tabhermopt
 //#define tablinopt
 
-#define org
+//#define org
 
 
 typedef Geometry::Cuboid Tgeometry;   // geometry: cube w. periodic boundaries
