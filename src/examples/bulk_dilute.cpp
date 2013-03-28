@@ -5,7 +5,8 @@ using namespace Faunus::Potential;
 
 
 //#define tab
-#define tabopt
+//#define tabopt
+#define taboptintel
 //#define tabhermopt
 //#define tablinopt
 
@@ -38,6 +39,9 @@ int main() {
 #ifdef tabopt
   auto nonbonded = pot.create( Energy::Nonbonded<Potential::PotentialTabulateVec<Tpairpot>,Tgeometry>(mcp) );
 #endif
+#ifdef taboptintel
+  auto nonbonded = pot.create( Energy::Nonbonded<Potential::PotentialTabulateVec<Tpairpot,Tabulate::tabulatorintel<double>>,Tgeometry>(mcp) );
+#endif
 #ifdef tab
   auto nonbonded = pot.create( Energy::Nonbonded<Potential::PotentialTabulate<Tpairpot>,Tgeometry>(mcp) );
 #endif
@@ -64,6 +68,7 @@ int main() {
 
   spc.load("state");                               // load old config. from disk (if any)
   sys.init( Energy::systemEnergy(spc,pot,spc.p)  );// store initial total system energy
+  
   cout << atom.info() << spc.info() << pot.info() << textio::header("MC Simulation Begins!");
 
   while ( loop.macroCnt() ) {  // Markov chain 
